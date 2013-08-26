@@ -17,91 +17,62 @@
 # you must load postgresql recipe via run_list before this recipe
 # include_recipe "postgresql::server"
 
-if node[:platform] == "gentoo"
-  portage_keywords node[:pdns][:package] do
-    keyword "~amd64"
-  end
+pdns_deb_file = "#{node['pdns']['package']}_#{node['pdns']['deb_version']}_#{node['debian']['arch']}.deb"
+pdns_deb = "#{node['debian']['deb_archive']}/#{pdns_deb_file}"
+
+e = remote_file pdns_deb do
+  source "#{node['pdns']['deb_baseurl']}/#{pdns_deb_file}"
+  backup false
+  mode 0600
 end
+e.run_action(:create_if_missing)
 
-if node[:platform] != "debian"
-  package node[:pdns][:package] do
-    action :install
-  end
-else
-  pdns_deb_file = "pdns-static_#{node[:pdns][:deb_version]}_#{node[:debian][:arch]}.deb"
-  pdns_deb = "/var/cache/apt/archives/#{pdns_deb_file}"
+d = dpkg_package node['pdns']['package'] do
+  source pdns_deb
+  action :install
+end
+d.run_action(:install)
 
-  e = execute "pdns-wget-pdns-deb" do
-    command "wget #{node[:pdns][:deb_baseurl]}/#{pdns_deb_file} -P #{node[:debian][:deb_archives]} || rm -f #{pdns_deb}"
-    only_if do
-      !::File.exists?(pdns_deb)
-    end
-  end
-  e.run_action(:run)
-
-  d = dpkg_package "pdns-static" do
-    source pdns_deb
-    action :install
-  end
-  d.run_action(:install)
-
+o = ohai "pdns-ohai-reload" do
+  action :reload
+  plugin "passwd"
 end
 
 u = user "pdns" do
   action :create
   system true
   manage_home true
-  home node[:pdns][:home_dir]
+  home node['pdns']['home_dir']
   notifies :reload, "ohai[pdns-ohai-reload]", :immediately
 end
 u.run_action(:create)
 
-o = ohai "pdns-ohai-reload" do
-    action :reload
-    plugin "passwd"
-end
-
 if u.updated_by_last_action?
   o.run_action(:reload)
-  # we need run_action twice to get node[:etc][:passwd][:pdns], why?
-  o.run_action(:reload)
 end
 
-directory node[:etc][:passwd][:pdns][:dir] do
+directory node['etc']['passwd']['pdns']['dir'] do
   owner "pdns"
   group "pdns"
   mode 0700
 end
 
-execute "pdns-add-flags" do
-  command %Q[echo pdns_flags=\\"${pdns_flags} --daemon=yes\\" >> /etc/rc.conf]
-  only_if do
-    node[:platform] == "freebsd" &&
-    !File.open('/etc/rc.conf').readlines.any? { |l|
-      l.start_with?("pdns_flags=")
-    }
-  end
-end
+node.set['postgresql']['pg_hba'] = [
+  {:comment => '# pdns-local',
+   :type    => 'local',
+   :db      => 'pdns',
+   :user    => 'pdns',
+   :method  => 'ident'},
+  {:comment => '# pdns-loopback',
+   :type    => 'host',
+   :db      => 'pdns',
+   :addr    => '127.0.0.1/32',
+   :user    => 'pdns',
+   :method  => 'md5'}
+] + node['postgresql']['pg_hba']
 
-service "pdns" do
-  action :enable
-  notifies :run, "execute[pdns-add-flags]", :immediately
-end
-
-pg_hba "pdns-local" do
-  ctype :local
-  user "pdns"
-  auth_method :ident
-end
-
-pg_hba "pdns-loopback" do
-  ctype :host
-  user "pdns"
-  auth_method :md5
-end
-
-template "#{node.pdns.dir}/pdns.conf" do
-  source "pdns.conf"
+template "#{node['pdns']['dir']}/pdns.conf" do
+  source "pdns.conf.erb"
   owner  "root"
   group  "pdns"
   mode   "0660"
@@ -115,17 +86,17 @@ sql_files = %W{
 }
 
 sql_files.each do |sql|
-  cookbook_file "#{node[:pdns][:dir]}/#{sql}" do
+  cookbook_file "#{node['pdns']['dir']}/#{sql}" do
     source sql
     owner "pdns"
     group "pdns"
-    mode  "0600"
+    mode  0600
   end
 end
 
 # createuser
 createuser "pdns" do
-  password node[:pdns][:db_password] unless node[:pdns][:db_password].empty?
+  password node['pdns']['db_password']
 end
 
 # createdb
@@ -135,24 +106,11 @@ createdb "pdns"
 bash "pdns-init-database" do
   user "pdns"
   code <<-EOC
-cat #{node[:pdns][:dir]}/{#{sql_files.join(",")}} | psql pdns
+cat #{node['pdns']['dir']}/{#{sql_files.join(",")}} | psql pdns
 EOC
-  only_if do
-    `su pdns -c "echo '\\d' | psql -A -t -U pdns pdns | wc -l"`.strip == "1"
-  end
-end
-
-# create initial domains
-bash "pdns-init-database" do
-  user "pdns"
-  code <<-EOC
-cat #{node[:pdns][:dir]}/{#{sql_files.join(",")}} | psql pdns
-EOC
-  only_if do
-    `su pdns -c "echo '\\d' | psql -A -t -U pdns pdns | wc -l"`.strip == "1"
-  end
+  only_if "[ `su pdns -c \"echo '\\d' | psql -A -t -U pdns pdns | wc -l\"` = \"1\" ]"
 end
 
 service "pdns" do
-  action :start
+  action [:enable, :start]
 end
