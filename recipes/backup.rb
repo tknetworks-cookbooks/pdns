@@ -14,9 +14,7 @@
 # limitations under the License.
 #
 
-include_recipe "pdns"
-
-directory "#{node[:etc][:passwd][:pdns][:dir]}/.ssh" do
+directory "#{node['etc']['passwd']['pdns']['dir']}/.ssh" do
   action :create
   owner "pdns"
   group "pdns"
@@ -24,7 +22,7 @@ directory "#{node[:etc][:passwd][:pdns][:dir]}/.ssh" do
 end
 
 ssh_keys = Chef::EncryptedDataBagItem.load('ssh_keys', 'pdns-backup')
-file "#{node[:etc][:passwd][:pdns][:dir]}/.ssh/id_rsa" do
+file "#{node['etc']['passwd']['pdns']['dir']}/.ssh/id_rsa" do
   mode 0600
   owner "pdns"
   group "pdns"
@@ -32,8 +30,8 @@ file "#{node[:etc][:passwd][:pdns][:dir]}/.ssh/id_rsa" do
   backup false
 end
 
-git "#{node[:etc][:passwd][:pdns][:dir]}/pdns-backup" do
-  repository node[:pdns][:backup][:repository]
+git "#{node['etc']['passwd']['pdns']['dir']}/pdns-backup" do
+  repository node['pdns']['backup']['repository']
   reference "master"
   action :sync
   user "pdns"
@@ -41,9 +39,9 @@ git "#{node[:etc][:passwd][:pdns][:dir]}/pdns-backup" do
 end
 
 cron "pdns-backup" do
-  command "#{node[:etc][:passwd][:pdns][:dir]}/pdns-backup/bin/pdns-backup.sh"
+  command "#{node['etc']['passwd']['pdns']['dir']}/pdns-backup/bin/pdns-backup.sh"
   hour   5
   minute 30
-  mailto node[:pdns][:backup][:mailto]
+  mailto node['pdns']['backup']['mailto']
   user "pdns"
 end
