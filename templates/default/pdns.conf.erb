@@ -18,7 +18,7 @@ disable-axfr=no
 <% end %>
 
 <% if node['pdns']['bind_inet'].empty? %>
-local-address=
+local-address=0.0.0.0
 <% else %>
 local-address=<%= node['pdns']['bind_inet'] %>
 <% end %>
