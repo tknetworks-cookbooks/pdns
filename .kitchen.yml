@@ -1,0 +1,26 @@
+---
+driver_plugin: vagrant
+driver_config:
+  require_chef_omnibus: false
+
+platforms:
+- name: debian-wheezy
+  driver_config:
+    box: debian-wheezy
+    box_url: http://projects.tsuntsun.net/~nabeken/boxes/vagrant-debian-wheezy.box
+
+suites:
+- name: default
+  run_list:
+  - recipe[postgresql::ruby]
+  - recipe[postgresql::server]
+  - recipe[pdns::default_test]
+  - recipe[minitest-handler]
+  attributes:
+    pdns:
+      axfr_ips:
+      - "192.168.1.200"
+      db_password: "pdns"
+    postgresql:
+      password:
+        postgres: "test"
