@@ -24,6 +24,9 @@ e = remote_file pdns_deb do
   source "#{node['pdns']['deb_baseurl']}/#{pdns_deb_file}"
   backup false
   mode 0600
+  not_if do
+    ::File.exists?(pdns_deb)
+  end
 end
 e.run_action(:create_if_missing)
 

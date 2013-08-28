@@ -50,3 +50,10 @@ end
 def berkshelf
   sh "berks install --path vendor/cookbooks"
 end
+
+begin
+  require 'kitchen/rake_tasks'
+  Kitchen::RakeTasks.new
+rescue LoadError
+  puts ">>>>> Kitchen gem not loaded, omitting tasks" unless ENV['CI']
+end
