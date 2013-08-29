@@ -14,3 +14,26 @@
 # limitations under the License.
 #
 require 'chefspec'
+
+shared_context 'debian' do
+  def set_node(node)
+    node.automatic_attrs['platform'] = 'debian'
+    node.automatic_attrs['kernel']['machine'] = 'x86_64'
+    node.automatic_attrs['etc']['passwd']['pdns']['dir'] = '/home/pdns'
+    node.automatic_attrs['pdns']['db_password'] = 'pdns'
+    node.automatic_attrs['pdns']['backup']['repository'] = 'git@example.org:pdns-backup.git'
+    node.automatic_attrs['pdns']['backup']['mailto'] = 'hostmaster@example.org'
+  end
+
+  let (:chef_run) {
+    ChefSpec::ChefRunner.new() do |node|
+      set_node(node)
+    end
+  }
+
+  let (:chef_run_guards) {
+    ChefSpec::ChefRunner.new({:evaluate_guards => true}) do |node|
+      set_node(node)
+    end
+  }
+end

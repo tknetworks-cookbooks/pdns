@@ -16,23 +16,8 @@
 require 'spec_helper'
 
 describe 'pdns::default' do
-  let (:chef_run) {
-    ChefSpec::ChefRunner.new() do |node|
-      node.automatic_attrs['platform'] = 'debian'
-      node.automatic_attrs['kernel']['machine'] = 'x86_64'
-      node.automatic_attrs['etc']['passwd']['pdns']['dir'] = '/home/pdns'
-      node.automatic_attrs['pdns']['db_password'] = 'pdns'
-    end
-  }
 
-  let (:chef_run_guards) {
-    ChefSpec::ChefRunner.new({:evaluate_guards => true}) do |node|
-      node.automatic_attrs['platform'] = 'debian'
-      node.automatic_attrs['kernel']['machine'] = 'x86_64'
-      node.automatic_attrs['etc']['passwd']['pdns']['dir'] = '/home/pdns'
-      node.automatic_attrs['pdns']['db_password'] = 'pdns'
-    end
-  }
+  include_context 'debian'
 
   let (:sqls) {
     %w{
