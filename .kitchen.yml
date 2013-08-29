@@ -12,15 +12,20 @@ platforms:
 suites:
 - name: default
   run_list:
+  - recipe[debian]
   - recipe[postgresql::ruby]
   - recipe[postgresql::server]
   - recipe[pdns::default_test]
+  - recipe[pdns::backup]
   - recipe[minitest-handler]
+  encrypted_data_bag_secret_key_path: test/integration/secret_key
   attributes:
     pdns:
       axfr_ips:
       - "192.168.1.200"
       db_password: "pdns"
+      backup:
+        repository: "https://gist.github.com/a59c16a1c595e061c314.git"
     postgresql:
       password:
         postgres: "test"

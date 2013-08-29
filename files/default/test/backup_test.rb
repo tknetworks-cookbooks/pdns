@@ -13,16 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_recipe 'pdns'
+require 'minitest/spec'
 
-cookbook_file "/tmp/pgsql-pdns-test.sql" do
-  source "pgsql-pdns-test.sql"
-end
+describe_recipe 'pdns::backup' do
+  it 'creates .ssh directory' do
+    directory('/home/pdns/.ssh').must_exist.with(:owner, 'pdns').and(:group, 'pdns')
+  end
 
-bash "pdns-insert-test-data" do
-  user "pdns"
-  code <<-EOC
-cat /tmp/pgsql-pdns-test.sql | psql pdns
-EOC
-  only_if "[ `su pdns -c 'echo \"SELECT count(*) FROM records;\" | psql -A -t -U pdns pdns'` = 0 ]"
+  it 'sets ssh key' do
+    key = '/home/pdns/.ssh/id_rsa'
+    assert_file key, 'pdns', 'pdns', 0600
+    file(key).must_include 'SSH_KEY'
+  end
+
+  it 'clones from the backup repository' do
+    dump = '/home/pdns/pdns-backup/pdns.sql'
+    file(dump).must_include 'PostgreSQL database dump'
+  end
+
+  it 'creates cronjob' do
+    assert_sh("su - pdns -c 'crontab -l' | grep pdns-backup.sh")
+  end
 end
