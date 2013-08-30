@@ -38,6 +38,15 @@ git "#{node['etc']['passwd']['pdns']['dir']}/pdns-backup" do
   group "pdns"
 end
 
+bash 'pdns-backup-git-config' do
+  user 'pdns'
+  code <<-EOC
+git config user.email pdns@$(hostname -f)
+git config user.name pdns
+  EOC
+  cwd "#{node['etc']['passwd']['pdns']['dir']}/pdns-backup"
+end
+
 cron "pdns-backup" do
   command "#{node['etc']['passwd']['pdns']['dir']}/pdns-backup/bin/pdns-backup.sh"
   hour   5

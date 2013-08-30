@@ -48,6 +48,10 @@ describe 'pdns::backup' do
     expect(git.repository).to eq('git@example.org:pdns-backup.git')
   end
 
+  it 'should configure git for pdns-backup' do
+    expect(chef_run).to execute_bash_script 'pdns-backup-git-config'
+  end
+
   it 'should create cronjob' do
     cron = chef_run.cron('pdns-backup')
     expect(cron.command).to eq('/home/pdns/pdns-backup/bin/pdns-backup.sh')

@@ -31,6 +31,12 @@ describe_recipe 'pdns::backup' do
     file(dump).must_include 'PostgreSQL database dump'
   end
 
+  it 'configures pdns-backup repository' do
+    %w{email name}.each do |a|
+      assert_sh("cd /home/pdns/pdns-backup; git config --get user.#{a}")
+    end
+  end
+
   it 'creates cronjob' do
     assert_sh("su - pdns -c 'crontab -l' | grep pdns-backup.sh")
   end
