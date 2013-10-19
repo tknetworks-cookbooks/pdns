@@ -37,6 +37,16 @@ describe 'pdns::default' do
     expect(chef_run).to create_file_with_content "#{chef_run.node['pdns']['dir']}/pdns.conf", 'launch=gpgsql'
   end
 
+  it 'should create pdns.conf with allow-axfr-ips' do
+    chef_run.node.set['pdns']['axfr_ips'] = %w{192.168.0.1 192.168.0.2}
+    chef_run.converge('pdns::default')
+    expect(chef_run)
+    .to create_file_with_content("#{chef_run.node['pdns']['dir']}/pdns.conf", '
+allow-axfr-ips=192.168.0.1,192.168.0.2
+master=on
+disable-axfr=no')
+  end
+
   it 'should put sqls' do
     chef_run.converge('pdns::default')
     sqls.each do |sql|
