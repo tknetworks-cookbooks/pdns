@@ -15,16 +15,18 @@
 #
 require 'minitest/spec'
 
-describe_recipe 'pdns::default' do
+describe_recipe 'pdns_test::default' do
   it 'installs pdns-static' do
     package('pdns-static').must_be_installed
   end
 
   it 'creates pdns.conf' do
-    conf = file('/etc/powerdns/pdns.conf')
-    conf.must_exist
-    conf.must_include 'launch=gpgsql'
-    conf.must_include 'allow-axfr-ips=192.168.1.200'
+    file('/etc/powerdns/pdns.conf')
+    .must_exist
+    .must_include('launch=gpgsql')
+    .must_include('allow-axfr-ips=192.168.1.200,192.168.1.201')
+    .must_include('master=on')
+    .must_include('disable-axfr=no')
   end
 
   it 'starts/enables service' do
